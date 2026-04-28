@@ -1,6 +1,6 @@
 body {
   background: #0f1115;
-  color: #fff;
+  color: #ffffff;
   font-family: Arial, sans-serif;
   margin: 0;
 }
@@ -37,7 +37,8 @@ h1 {
   margin-bottom: 20px;
 }
 
-select, button {
+select,
+button {
   margin: 5px;
   padding: 8px 12px;
   background: #1c1f26;
@@ -54,4 +55,13 @@ pre {
   background: #1c1f26;
   padding: 20px;
   overflow: auto;
+  white-space: pre-wrap;
+}
+
+#curveCanvas {
+  width: 100%;
+  height: 320px;
+  background: #151821;
+  border: 1px solid #333;
+  margin-top: 20px;
 }
