@@ -1,5 +1,5 @@
 body {
-  background: #0f1115;
+  background: #0b0f17;
   color: #ffffff;
   font-family: Arial, sans-serif;
   margin: 0;
@@ -7,93 +7,56 @@ body {
 
 .container {
   max-width: 1000px;
-  margin: 40px auto;
-  text-align: center;
+  margin: auto;
+  padding: 20px;
 }
 
-h1 {
-  margin-bottom: 20px;
+/* 🔥 HEADER LOGO */
+.header {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin-bottom: 25px;
 }
 
-h2 {
-  margin-top: 28px;
-  margin-bottom: 12px;
-  font-size: 18px;
-  font-weight: normal;
-  color: #d7d7d7;
-}
-
-.drop-zone {
-  border: 2px dashed #555;
-  padding: 40px;
-  margin-bottom: 12px;
-  cursor: pointer;
-  position: relative;
-  background: #151821;
-}
-
-.drop-zone span {
-  color: #aaa;
-  font-size: 14px;
-}
-
-.drop-zone input {
-  position: absolute;
+.logo {
+  max-width: 500px;
   width: 100%;
-  height: 100%;
-  opacity: 0;
-  left: 0;
-  top: 0;
-  cursor: pointer;
+  height: auto;
 }
 
-.fileStatus {
-  background: #1c1f26;
-  border: 1px solid #333;
-  padding: 10px;
+/* DROP ZONE */
+.drop-zone {
+  border: 2px dashed #444;
+  padding: 30px;
+  text-align: center;
   margin-bottom: 20px;
-  text-align: left;
-  font-size: 13px;
-  color: #ddd;
 }
 
+/* CONTROLS */
 .controls {
+  display: flex;
+  gap: 10px;
   margin-bottom: 20px;
 }
 
-select,
-button {
-  margin: 5px;
-  padding: 8px 12px;
-  background: #1c1f26;
+select, button {
+  padding: 8px;
+  background: #1a2233;
   color: white;
   border: 1px solid #444;
 }
 
-button:hover {
-  background: #2a2f3a;
-}
-
-pre {
-  text-align: left;
-  background: #1c1f26;
-  padding: 20px;
-  overflow: auto;
+/* OUTPUT */
+#output {
+  background: #111826;
+  padding: 15px;
   white-space: pre-wrap;
+  margin-bottom: 20px;
 }
 
-#curveCanvas {
-  width: 100%;
-  height: 320px;
-  background: #151821;
+/* GRAPH */
+canvas {
+  background: #111826;
   border: 1px solid #333;
-  margin-top: 20px;
-}
-
-#previewBox {
-  width: 100%;
-  height: 360px;
-  background: #151821;
-  border: 1px solid #333;
-  overflow: hidden;
 }
