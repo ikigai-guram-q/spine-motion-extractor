@@ -131,7 +131,7 @@ function extract() {
     rows.push(`Bone: ${boneName}`);
     rows.push(`Property: ${property}`);
     rows.push("");
-    rows.push("Time | Value From → To | Duration | Bezier / Curve");
+    rows.push("Time | Value From → To | Duration | Cubic Bezier");
     rows.push("--------------------------------------------------");
 
     for (let i = 0; i < timeline.length - 1; i++) {
@@ -145,16 +145,10 @@ function extract() {
       const fromValue = current[valueKey] ?? 0;
       const toValue = next[valueKey] ?? fromValue;
 
-      let curve = "linear";
-
-      if (current.curve === "stepped") {
-        curve = "stepped";
-      } else if (Array.isArray(current.curve)) {
-        curve = current.curve.map(v => Number(v).toFixed(3)).join(", ");
-      }
+      const bezier = getFourNumberBezier(current.curve, property);
 
       rows.push(
-        `${startTime.toFixed(3)}s | ${fromValue} → ${toValue} | ${duration.toFixed(3)}s | ${curve}`
+        `${startTime.toFixed(3)}s | ${fromValue} → ${toValue} | ${duration.toFixed(3)}s | ${bezier}`
       );
     }
 
@@ -164,4 +158,32 @@ function extract() {
     output.textContent = "Extraction error:\n" + err.message;
     console.error(err);
   }
+}
+
+function getFourNumberBezier(curve, property) {
+  if (!curve) return "linear";
+
+  if (curve === "stepped") return "stepped";
+
+  if (!Array.isArray(curve)) return String(curve);
+
+  if (curve.length === 4) {
+    return curve.map(v => Number(v).toFixed(3)).join(", ");
+  }
+
+  if (curve.length >= 8) {
+    let selected;
+
+    if (property.endsWith(".x")) {
+      selected = curve.slice(0, 4);
+    } else if (property.endsWith(".y")) {
+      selected = curve.slice(4, 8);
+    } else {
+      selected = curve.slice(0, 4);
+    }
+
+    return selected.map(v => Number(v).toFixed(3)).join(", ");
+  }
+
+  return curve.map(v => Number(v).toFixed(3)).join(", ");
 }
