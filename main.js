@@ -58,7 +58,6 @@ async function handleFiles(e) {
     } else {
       output.textContent += "\nPreview skipped: add .atlas and .webp/.png files.";
     }
-
   } catch (err) {
     output.textContent = "Error reading files:\n" + err.message;
     clearCanvas();
@@ -132,11 +131,12 @@ async function setupPreview() {
 
     previewBox.appendChild(pixiApp.view);
 
-    const jsonUrl = URL.createObjectURL(loadedFiles.jsonFile);
+    const jsonUrl = URL.createObjectURL(loadedFiles.jsonFile) + "#.json";
+
     const atlasTextOriginal = await loadedFiles.atlasFile.text();
     const patchedAtlasText = patchAtlasTextWithBlobUrls(atlasTextOriginal, loadedFiles.imageFiles);
     const atlasBlob = new Blob([patchedAtlasText], { type: "text/plain" });
-    const atlasUrl = URL.createObjectURL(atlasBlob);
+    const atlasUrl = URL.createObjectURL(atlasBlob) + "#.atlas";
 
     const skeletonAlias = "skeleton-data-" + Date.now();
     const atlasAlias = "skeleton-atlas-" + Date.now();
@@ -242,6 +242,13 @@ function extract() {
     const property = propertySelect.value;
 
     const anim = spineData.animations[animName];
+
+    if (!anim || !anim.bones) {
+      output.textContent = "No bone timelines found in this animation.";
+      clearCanvas();
+      return;
+    }
+
     const bone = anim.bones[boneName];
 
     if (!bone) {
