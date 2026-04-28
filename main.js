@@ -141,8 +141,18 @@ async function setupPreview() {
     const skeletonAlias = "skeleton-data-" + Date.now();
     const atlasAlias = "skeleton-atlas-" + Date.now();
 
-    PIXI.Assets.add({ alias: skeletonAlias, src: jsonUrl });
-    PIXI.Assets.add({ alias: atlasAlias, src: atlasUrl });
+    PIXI.Assets.add({
+      alias: skeletonAlias,
+      src: jsonUrl,
+      data: {
+        loadParser: "loadJson"
+      }
+    });
+
+    PIXI.Assets.add({
+      alias: atlasAlias,
+      src: atlasUrl
+    });
 
     await PIXI.Assets.load([skeletonAlias, atlasAlias]);
 
