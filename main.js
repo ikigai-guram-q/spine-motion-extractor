@@ -1,12 +1,4 @@
 let spineData = null;
-let loadedFiles = {
-  jsonFile: null,
-  atlasFile: null,
-  imageFiles: []
-};
-
-let pixiApp = null;
-let spineObject = null;
 
 const fileInput = document.getElementById("fileInput");
 const animationSelect = document.getElementById("animationSelect");
@@ -14,70 +6,33 @@ const boneSelect = document.getElementById("boneSelect");
 const propertySelect = document.getElementById("propertySelect");
 const output = document.getElementById("output");
 const extractBtn = document.getElementById("extractBtn");
-const fileStatus = document.getElementById("fileStatus");
 
 const canvas = document.getElementById("curveCanvas");
 const ctx = canvas.getContext("2d");
-const previewBox = document.getElementById("previewBox");
 
-fileInput.addEventListener("change", handleFiles);
-
-animationSelect.addEventListener("change", () => {
-  populateBones();
-  playSelectedAnimation();
-});
-
+fileInput.addEventListener("change", handleFile);
+animationSelect.addEventListener("change", populateBones);
 extractBtn.addEventListener("click", extract);
 
-async function handleFiles(e) {
-  const files = Array.from(e.target.files);
-  if (!files.length) return;
+function handleFile(e) {
+  const file = e.target.files[0];
+  if (!file) return;
 
-  loadedFiles.jsonFile = files.find(f => f.name.toLowerCase().endsWith(".json")) || null;
-  loadedFiles.atlasFile = files.find(f => f.name.toLowerCase().endsWith(".atlas")) || null;
-  loadedFiles.imageFiles = files.filter(f => {
-    const name = f.name.toLowerCase();
-    return (
-      name.endsWith(".png") ||
-      name.endsWith(".webp") ||
-      name.endsWith(".jpg") ||
-      name.endsWith(".jpeg")
-    );
-  });
+  const reader = new FileReader();
 
-  updateFileStatus();
-
-  if (!loadedFiles.jsonFile) {
-    output.textContent = "Missing JSON file.";
-    return;
-  }
-
-  try {
-    const jsonText = await loadedFiles.jsonFile.text();
-    spineData = JSON.parse(jsonText);
-
-    output.textContent = "JSON loaded successfully.";
-    clearCanvas();
-    populateAnimations();
-
-    if (loadedFiles.atlasFile && loadedFiles.imageFiles.length > 0) {
-      await setupPreview();
-    } else {
-      output.textContent += "\nPreview skipped: add .atlas and .webp/.png files.";
+  reader.onload = function(evt) {
+    try {
+      spineData = JSON.parse(evt.target.result);
+      output.textContent = "JSON loaded successfully.";
+      clearCanvas();
+      populateAnimations();
+    } catch (err) {
+      output.textContent = "Error reading JSON:\n" + err.message;
+      clearCanvas();
     }
-  } catch (err) {
-    output.textContent = "Error reading files:\n" + err.message;
-    clearCanvas();
-  }
-}
+  };
 
-function updateFileStatus() {
-  const imageNames = loadedFiles.imageFiles.map(f => f.name).join(", ") || "none";
-
-  fileStatus.textContent =
-    `JSON: ${loadedFiles.jsonFile ? loadedFiles.jsonFile.name : "missing"}\n` +
-    `ATLAS: ${loadedFiles.atlasFile ? loadedFiles.atlasFile.name : "missing"}\n` +
-    `IMAGES: ${imageNames}`;
+  reader.readAsText(file);
 }
 
 function populateAnimations() {
@@ -101,8 +56,6 @@ function populateAnimations() {
 function populateBones() {
   boneSelect.innerHTML = "";
 
-  if (!spineData || !spineData.animations) return;
-
   const animName = animationSelect.value;
   const anim = spineData.animations[animName];
 
@@ -120,113 +73,6 @@ function populateBones() {
     option.textContent = boneName;
     boneSelect.appendChild(option);
   });
-}
-
-async function setupPreview() {
-  try {
-    previewBox.innerHTML = "";
-
-    if (pixiApp) {
-      pixiApp.destroy(true, {
-        children: true,
-        texture: true,
-        baseTexture: true
-      });
-
-      pixiApp = null;
-      spineObject = null;
-    }
-
-    pixiApp = new PIXI.Application({
-      width: previewBox.clientWidth,
-      height: previewBox.clientHeight,
-      backgroundAlpha: 0,
-      antialias: true,
-      resolution: window.devicePixelRatio || 1,
-      autoDensity: true
-    });
-
-    previewBox.appendChild(pixiApp.view);
-
-    const jsonUrl = URL.createObjectURL(loadedFiles.jsonFile);
-    const atlasUrl = URL.createObjectURL(loadedFiles.atlasFile);
-
-    const skeletonAlias = "skeleton-data-" + Date.now();
-    const atlasAlias = "skeleton-atlas-" + Date.now();
-
-    const imageMap = {};
-
-    loadedFiles.imageFiles.forEach(file => {
-      imageMap[file.name] = URL.createObjectURL(file);
-    });
-
-    PIXI.Assets.add({
-      alias: skeletonAlias,
-      src: jsonUrl
-    });
-
-    PIXI.Assets.add({
-      alias: atlasAlias,
-      src: atlasUrl,
-      data: {
-        images: imageMap
-      }
-    });
-
-    await PIXI.Assets.load([skeletonAlias, atlasAlias]);
-
-    const SpineClass = window.spine?.Spine || window.Spine;
-
-    if (!SpineClass) {
-      output.textContent += "\nPreview error: Spine class not found.";
-      return;
-    }
-
-    spineObject = SpineClass.from({
-      skeleton: skeletonAlias,
-      atlas: atlasAlias
-    });
-
-    spineObject.autoUpdate = true;
-
-    pixiApp.stage.addChild(spineObject);
-
-    fitSpineToPreview();
-    playSelectedAnimation();
-
-  } catch (err) {
-    output.textContent += "\nPreview error:\n" + err.message;
-    console.error(err);
-  }
-}
-
-function fitSpineToPreview() {
-  if (!spineObject || !pixiApp) return;
-
-  spineObject.x = pixiApp.screen.width / 2;
-  spineObject.y = pixiApp.screen.height / 2;
-  spineObject.scale.set(1);
-
-  const bounds = spineObject.getLocalBounds();
-
-  const scaleX = (pixiApp.screen.width * 0.75) / Math.max(bounds.width, 1);
-  const scaleY = (pixiApp.screen.height * 0.75) / Math.max(bounds.height, 1);
-  const scale = Math.min(scaleX, scaleY);
-
-  spineObject.scale.set(scale);
-
-  spineObject.x = pixiApp.screen.width / 2 - (bounds.x + bounds.width / 2) * scale;
-  spineObject.y = pixiApp.screen.height / 2 - (bounds.y + bounds.height / 2) * scale;
-}
-
-function playSelectedAnimation() {
-  if (!spineObject || !animationSelect.value) return;
-
-  try {
-    spineObject.state.setAnimation(0, animationSelect.value, true);
-  } catch (err) {
-    output.textContent += "\nCould not play selected animation:\n" + err.message;
-  }
 }
 
 function extract() {
@@ -280,7 +126,6 @@ function extract() {
     if (!timeline || timeline.length === 0) {
       output.textContent =
         `No ${property} timeline found for bone "${boneName}" in animation "${animName}".`;
-
       clearCanvas();
       return;
     }
@@ -348,10 +193,7 @@ function extract() {
         const time = startTime + duration * localT;
         const value = fromValue + (toValue - fromValue) * easedT;
 
-        graphPoints.push({
-          time,
-          value
-        });
+        graphPoints.push({ time, value });
       }
     }
 
@@ -490,6 +332,7 @@ function drawGraph(points) {
 
   ctx.fillStyle = "#ffffff";
   ctx.font = "12px Arial";
+
   ctx.fillText(
     `time: ${minTime.toFixed(3)}s → ${maxTime.toFixed(3)}s`,
     padding,
