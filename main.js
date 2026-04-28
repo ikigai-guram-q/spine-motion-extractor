@@ -149,15 +149,12 @@ async function setupPreview() {
     const SpineClass = window.spine?.Spine || window.Spine;
 
     if (!SpineClass) {
-      output.textContent += "\nPreview error: Spine class not found. Runtime script may not have loaded.";
+      output.textContent += "\nPreview error: Spine class not found.";
       return;
     }
 
-    spineObject = SpineClass.from({
-      skeleton: skeletonAlias,
-      atlas: atlasAlias,
-      autoUpdate: true
-    });
+    spineObject = SpineClass.from(skeletonAlias, atlasAlias);
+    spineObject.autoUpdate = true;
 
     pixiApp.stage.addChild(spineObject);
 
@@ -171,19 +168,30 @@ async function setupPreview() {
 }
 
 function patchAtlasTextWithBlobUrls(atlasText, imageFiles) {
-  const imageUrlMap = {};
-
-  imageFiles.forEach(file => {
-    imageUrlMap[file.name] = URL.createObjectURL(file);
-  });
+  const imageUrls = imageFiles.map(f => URL.createObjectURL(f));
+  let imageIndex = 0;
 
   const lines = atlasText.split(/\r?\n/);
 
   const patched = lines.map(line => {
     const trimmed = line.trim();
 
-    if (imageUrlMap[trimmed]) {
-      return line.replace(trimmed, imageUrlMap[trimmed]);
+    if (
+      trimmed &&
+      !trimmed.includes(":") &&
+      !trimmed.includes(" ") &&
+      (
+        trimmed.toLowerCase().endsWith(".png") ||
+        trimmed.toLowerCase().endsWith(".webp") ||
+        trimmed.toLowerCase().endsWith(".jpg") ||
+        trimmed.toLowerCase().endsWith(".jpeg")
+      )
+    ) {
+      if (imageUrls[imageIndex]) {
+        const url = imageUrls[imageIndex];
+        imageIndex++;
+        return url;
+      }
     }
 
     return line;
@@ -197,7 +205,6 @@ function fitSpineToPreview() {
 
   spineObject.x = pixiApp.screen.width / 2;
   spineObject.y = pixiApp.screen.height / 2;
-
   spineObject.scale.set(1);
 
   const bounds = spineObject.getLocalBounds();
