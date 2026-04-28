@@ -8,107 +8,160 @@ const output = document.getElementById("output");
 const extractBtn = document.getElementById("extractBtn");
 
 fileInput.addEventListener("change", handleFile);
+animationSelect.addEventListener("change", populateBones);
+extractBtn.addEventListener("click", extract);
 
 function handleFile(e) {
   const file = e.target.files[0];
   if (!file) return;
 
   const reader = new FileReader();
+
   reader.onload = function(evt) {
-    spineData = JSON.parse(evt.target.result);
-    populateAnimations();
+    try {
+      spineData = JSON.parse(evt.target.result);
+      output.textContent = "JSON loaded successfully.";
+      populateAnimations();
+    } catch (err) {
+      output.textContent = "Error reading JSON:\n" + err.message;
+    }
   };
+
   reader.readAsText(file);
 }
 
 function populateAnimations() {
   animationSelect.innerHTML = "";
 
-  const animations = spineData.animations;
-  for (let name in animations) {
+  if (!spineData.animations) {
+    output.textContent = "No animations found in this JSON.";
+    return;
+  }
+
+  Object.keys(spineData.animations).forEach(name => {
     const option = document.createElement("option");
     option.value = name;
     option.textContent = name;
     animationSelect.appendChild(option);
-  }
+  });
 
   populateBones();
 }
 
-animationSelect.addEventListener("change", populateBones);
-
 function populateBones() {
   boneSelect.innerHTML = "";
 
-  const anim = spineData.animations[animationSelect.value];
-  if (!anim.bones) return;
-
-  for (let bone in anim.bones) {
-    const option = document.createElement("option");
-    option.value = bone;
-    option.textContent = bone;
-    boneSelect.appendChild(option);
-  }
-}
-
-extractBtn.addEventListener("click", extract);
-
-function extract() {
   const animName = animationSelect.value;
-  const boneName = boneSelect.value;
-  const property = propertySelect.value;
-
   const anim = spineData.animations[animName];
-  const bone = anim.bones[boneName];
 
-  let timeline;
-
-  if (property.startsWith("translate")) {
-    timeline = bone.translate;
-  } else if (property.startsWith("scale")) {
-    timeline = bone.scale;
-  } else if (property === "rotate") {
-    timeline = bone.rotate;
-  }
-
-  if (!timeline) {
-    output.textContent = "No data for this property.";
+  if (!anim || !anim.bones) {
+    output.textContent = "No bone timelines found in this animation.";
     return;
   }
 
-  let result = [];
+  Object.keys(anim.bones).forEach(boneName => {
+    const option = document.createElement("option");
+    option.value = boneName;
+    option.textContent = boneName;
+    boneSelect.appendChild(option);
+  });
+}
 
-  for (let i = 0; i < timeline.length - 1; i++) {
-    const curr = timeline[i];
-    const next = timeline[i + 1];
-
-    const duration = next.time - curr.time;
-
-    let valueFrom, valueTo;
-
-    if (property.includes("x")) {
-      valueFrom = curr.x ?? 0;
-      valueTo = next.x ?? 0;
-    } else if (property.includes("y")) {
-      valueFrom = curr.y ?? 0;
-      valueTo = next.y ?? 0;
-    } else if (property === "rotate") {
-      valueFrom = curr.angle ?? 0;
-      valueTo = next.angle ?? 0;
+function extract() {
+  try {
+    if (!spineData) {
+      output.textContent = "Please load a Spine JSON first.";
+      return;
     }
 
-    const curve = curr.curve || "linear";
+    const animName = animationSelect.value;
+    const boneName = boneSelect.value;
+    const property = propertySelect.value;
 
-    let bezier = "linear";
+    const anim = spineData.animations[animName];
+    const bone = anim.bones[boneName];
 
-    if (Array.isArray(curve)) {
-      bezier = curve.join(", ");
+    if (!bone) {
+      output.textContent = "Selected bone not found.";
+      return;
     }
 
-    result.push(
-      `${curr.time.toFixed(3)}s | ${valueFrom} → ${valueTo} | ${duration.toFixed(3)}s | ${bezier}`
-    );
+    let timeline;
+    let valueKey;
+
+    if (property === "translate.x") {
+      timeline = bone.translate;
+      valueKey = "x";
+    }
+
+    if (property === "translate.y") {
+      timeline = bone.translate;
+      valueKey = "y";
+    }
+
+    if (property === "scale.x") {
+      timeline = bone.scale;
+      valueKey = "x";
+    }
+
+    if (property === "scale.y") {
+      timeline = bone.scale;
+      valueKey = "y";
+    }
+
+    if (property === "rotate") {
+      timeline = bone.rotate;
+      valueKey = "angle";
+    }
+
+    if (!timeline || timeline.length === 0) {
+      output.textContent =
+        `No ${property} timeline found for bone "${boneName}" in animation "${animName}".`;
+      return;
+    }
+
+    if (timeline.length < 2) {
+      output.textContent = "Timeline has only one keyframe. No segment to extract.";
+      return;
+    }
+
+    let rows = [];
+
+    rows.push(`Animation: ${animName}`);
+    rows.push(`Bone: ${boneName}`);
+    rows.push(`Property: ${property}`);
+    rows.push("");
+    rows.push("Time | Value From → To | Duration | Bezier / Curve");
+    rows.push("--------------------------------------------------");
+
+    for (let i = 0; i < timeline.length - 1; i++) {
+      const current = timeline[i];
+      const next = timeline[i + 1];
+
+      const startTime = current.time ?? 0;
+      const endTime = next.time ?? 0;
+      const duration = endTime - startTime;
+
+      const fromValue = current[valueKey] ?? 0;
+      const toValue = next[valueKey] ?? fromValue;
+
+      let curve = "linear";
+
+      if (current.curve === "stepped") {
+        curve = "stepped";
+      } else if (Array.isArray(current.curve)) {
+        curve = current.curve.map(v => Number(v).toFixed(3)).join(", ");
+      }
+
+      rows.push(
+        `${startTime.toFixed(3)}s | ${fromValue} → ${toValue} | ${duration.toFixed(3)}s | ${curve}`
+      );
+    }
+
+    output.textContent = rows.join("\n");
+
+  } catch (err) {
+    output.textContent = "Extraction error:\n" + err.message;
+    console.error(err);
   }
-
-  output.textContent = result.join("\n");
 }
