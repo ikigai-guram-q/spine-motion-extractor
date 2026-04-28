@@ -99,24 +99,16 @@ function extract() {
     if (property === "translate.x") {
       timeline = bone.translate;
       valueKey = "x";
-    }
-
-    if (property === "translate.y") {
+    } else if (property === "translate.y") {
       timeline = bone.translate;
       valueKey = "y";
-    }
-
-    if (property === "scale.x") {
+    } else if (property === "scale.x") {
       timeline = bone.scale;
       valueKey = "x";
-    }
-
-    if (property === "scale.y") {
+    } else if (property === "scale.y") {
       timeline = bone.scale;
       valueKey = "y";
-    }
-
-    if (property === "rotate") {
+    } else if (property === "rotate") {
       timeline = bone.rotate;
       valueKey = "angle";
     }
@@ -141,8 +133,8 @@ function extract() {
     rows.push(`Bone: ${boneName}`);
     rows.push(`Property: ${property}`);
     rows.push("");
-    rows.push("Time | Value From → To | Duration | Cubic Bezier");
-    rows.push("--------------------------------------------------");
+    rows.push("Time | Value From → To | Duration | Normalized Cubic Bezier");
+    rows.push("------------------------------------------------------------");
 
     for (let i = 0; i < timeline.length - 1; i++) {
       const current = timeline[i];
@@ -155,7 +147,15 @@ function extract() {
       const fromValue = current[valueKey] ?? 0;
       const toValue = next[valueKey] ?? fromValue;
 
-      const bezierArray = getFourNumberBezierArray(current.curve, property);
+      const bezierArray = getNormalizedBezierArray(
+        current.curve,
+        property,
+        startTime,
+        endTime,
+        fromValue,
+        toValue
+      );
+
       const bezierText = formatBezier(bezierArray, current.curve);
 
       rows.push(
@@ -171,7 +171,13 @@ function extract() {
         if (current.curve === "stepped") {
           easedT = 0;
         } else if (bezierArray) {
-          easedT = cubicBezierEase(localT, bezierArray[0], bezierArray[1], bezierArray[2], bezierArray[3]);
+          easedT = cubicBezierEase(
+            localT,
+            bezierArray[0],
+            bezierArray[1],
+            bezierArray[2],
+            bezierArray[3]
+          );
         }
 
         const time = startTime + duration * localT;
@@ -191,35 +197,44 @@ function extract() {
   }
 }
 
-function getFourNumberBezierArray(curve, property) {
+function getNormalizedBezierArray(curve, property, startTime, endTime, fromValue, toValue) {
   if (!curve) return null;
   if (curve === "stepped") return null;
   if (!Array.isArray(curve)) return null;
 
-  if (curve.length === 4) {
-    return curve;
-  }
+  let selected;
 
   if (curve.length >= 8) {
     if (property.endsWith(".x")) {
-      return curve.slice(0, 4);
+      selected = curve.slice(0, 4);
+    } else if (property.endsWith(".y")) {
+      selected = curve.slice(4, 8);
+    } else {
+      selected = curve.slice(0, 4);
     }
-
-    if (property.endsWith(".y")) {
-      return curve.slice(4, 8);
-    }
-
-    return curve.slice(0, 4);
+  } else if (curve.length === 4) {
+    selected = curve.slice(0, 4);
+  } else {
+    return null;
   }
 
-  return null;
+  const duration = endTime - startTime;
+  const valueRange = toValue - fromValue;
+
+  if (duration === 0) return null;
+
+  const x1 = (selected[0] - startTime) / duration;
+  const y1 = valueRange === 0 ? 0 : (selected[1] - fromValue) / valueRange;
+  const x2 = (selected[2] - startTime) / duration;
+  const y2 = valueRange === 0 ? 0 : (selected[3] - fromValue) / valueRange;
+
+  return [x1, y1, x2, y2];
 }
 
 function formatBezier(bezierArray, originalCurve) {
   if (!originalCurve) return "linear";
   if (originalCurve === "stepped") return "stepped";
-
-  if (!bezierArray) return String(originalCurve);
+  if (!bezierArray) return "linear";
 
   return bezierArray.map(v => Number(v).toFixed(3)).join(", ");
 }
