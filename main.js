@@ -21,10 +21,12 @@ const ctx = canvas.getContext("2d");
 const previewBox = document.getElementById("previewBox");
 
 fileInput.addEventListener("change", handleFiles);
+
 animationSelect.addEventListener("change", () => {
   populateBones();
   playSelectedAnimation();
 });
+
 extractBtn.addEventListener("click", extract);
 
 async function handleFiles(e) {
@@ -35,7 +37,12 @@ async function handleFiles(e) {
   loadedFiles.atlasFile = files.find(f => f.name.toLowerCase().endsWith(".atlas")) || null;
   loadedFiles.imageFiles = files.filter(f => {
     const name = f.name.toLowerCase();
-    return name.endsWith(".png") || name.endsWith(".webp");
+    return (
+      name.endsWith(".png") ||
+      name.endsWith(".webp") ||
+      name.endsWith(".jpg") ||
+      name.endsWith(".jpeg")
+    );
   });
 
   updateFileStatus();
@@ -76,7 +83,7 @@ function updateFileStatus() {
 function populateAnimations() {
   animationSelect.innerHTML = "";
 
-  if (!spineData.animations) {
+  if (!spineData || !spineData.animations) {
     output.textContent = "No animations found in this JSON.";
     return;
   }
@@ -94,11 +101,16 @@ function populateAnimations() {
 function populateBones() {
   boneSelect.innerHTML = "";
 
+  if (!spineData || !spineData.animations) return;
+
   const animName = animationSelect.value;
   const anim = spineData.animations[animName];
 
   if (!anim || !anim.bones) {
-    output.textContent = "No bone timelines found in this animation.";
+    const option = document.createElement("option");
+    option.value = "";
+    option.textContent = "No bone timelines";
+    boneSelect.appendChild(option);
     return;
   }
 
@@ -115,7 +127,12 @@ async function setupPreview() {
     previewBox.innerHTML = "";
 
     if (pixiApp) {
-      pixiApp.destroy(true, { children: true, texture: true, baseTexture: true });
+      pixiApp.destroy(true, {
+        children: true,
+        texture: true,
+        baseTexture: true
+      });
+
       pixiApp = null;
       spineObject = null;
     }
@@ -131,27 +148,29 @@ async function setupPreview() {
 
     previewBox.appendChild(pixiApp.view);
 
-    const jsonUrl = URL.createObjectURL(loadedFiles.jsonFile) + "#.json";
-
-    const atlasTextOriginal = await loadedFiles.atlasFile.text();
-    const patchedAtlasText = patchAtlasTextWithBlobUrls(atlasTextOriginal, loadedFiles.imageFiles);
-    const atlasBlob = new Blob([patchedAtlasText], { type: "text/plain" });
-    const atlasUrl = URL.createObjectURL(atlasBlob) + "#.atlas";
+    const jsonUrl = URL.createObjectURL(loadedFiles.jsonFile);
+    const atlasUrl = URL.createObjectURL(loadedFiles.atlasFile);
 
     const skeletonAlias = "skeleton-data-" + Date.now();
     const atlasAlias = "skeleton-atlas-" + Date.now();
 
+    const imageMap = {};
+
+    loadedFiles.imageFiles.forEach(file => {
+      imageMap[file.name] = URL.createObjectURL(file);
+    });
+
     PIXI.Assets.add({
       alias: skeletonAlias,
-      src: jsonUrl,
-      data: {
-        loadParser: "loadJson"
-      }
+      src: jsonUrl
     });
 
     PIXI.Assets.add({
       alias: atlasAlias,
-      src: atlasUrl
+      src: atlasUrl,
+      data: {
+        images: imageMap
+      }
     });
 
     await PIXI.Assets.load([skeletonAlias, atlasAlias]);
@@ -163,7 +182,11 @@ async function setupPreview() {
       return;
     }
 
-    spineObject = SpineClass.from(skeletonAlias, atlasAlias);
+    spineObject = SpineClass.from({
+      skeleton: skeletonAlias,
+      atlas: atlasAlias
+    });
+
     spineObject.autoUpdate = true;
 
     pixiApp.stage.addChild(spineObject);
@@ -177,39 +200,6 @@ async function setupPreview() {
   }
 }
 
-function patchAtlasTextWithBlobUrls(atlasText, imageFiles) {
-  const imageUrls = imageFiles.map(f => URL.createObjectURL(f));
-  let imageIndex = 0;
-
-  const lines = atlasText.split(/\r?\n/);
-
-  const patched = lines.map(line => {
-    const trimmed = line.trim();
-
-    if (
-      trimmed &&
-      !trimmed.includes(":") &&
-      !trimmed.includes(" ") &&
-      (
-        trimmed.toLowerCase().endsWith(".png") ||
-        trimmed.toLowerCase().endsWith(".webp") ||
-        trimmed.toLowerCase().endsWith(".jpg") ||
-        trimmed.toLowerCase().endsWith(".jpeg")
-      )
-    ) {
-      if (imageUrls[imageIndex]) {
-        const url = imageUrls[imageIndex];
-        imageIndex++;
-        return url;
-      }
-    }
-
-    return line;
-  });
-
-  return patched.join("\n");
-}
-
 function fitSpineToPreview() {
   if (!spineObject || !pixiApp) return;
 
@@ -219,8 +209,8 @@ function fitSpineToPreview() {
 
   const bounds = spineObject.getLocalBounds();
 
-  const scaleX = pixiApp.screen.width * 0.75 / Math.max(bounds.width, 1);
-  const scaleY = pixiApp.screen.height * 0.75 / Math.max(bounds.height, 1);
+  const scaleX = (pixiApp.screen.width * 0.75) / Math.max(bounds.width, 1);
+  const scaleY = (pixiApp.screen.height * 0.75) / Math.max(bounds.height, 1);
   const scale = Math.min(scaleX, scaleY);
 
   spineObject.scale.set(scale);
@@ -290,6 +280,7 @@ function extract() {
     if (!timeline || timeline.length === 0) {
       output.textContent =
         `No ${property} timeline found for bone "${boneName}" in animation "${animName}".`;
+
       clearCanvas();
       return;
     }
@@ -300,8 +291,8 @@ function extract() {
       return;
     }
 
-    let rows = [];
-    let graphPoints = [];
+    const rows = [];
+    const graphPoints = [];
 
     rows.push(`Animation: ${animName}`);
     rows.push(`Bone: ${boneName}`);
@@ -357,7 +348,10 @@ function extract() {
         const time = startTime + duration * localT;
         const value = fromValue + (toValue - fromValue) * easedT;
 
-        graphPoints.push({ time, value });
+        graphPoints.push({
+          time,
+          value
+        });
       }
     }
 
@@ -420,6 +414,7 @@ function cubicBezierEase(progress, x1, y1, x2, y2) {
 
   for (let i = 0; i < 20; i++) {
     t = (low + high) / 2;
+
     const x = cubicBezierValue(t, x1, x2);
 
     if (x < progress) {
@@ -495,8 +490,17 @@ function drawGraph(points) {
 
   ctx.fillStyle = "#ffffff";
   ctx.font = "12px Arial";
-  ctx.fillText(`time: ${minTime.toFixed(3)}s → ${maxTime.toFixed(3)}s`, padding, 20);
-  ctx.fillText(`value: ${minValue.toFixed(3)} → ${maxValue.toFixed(3)}`, padding, 36);
+  ctx.fillText(
+    `time: ${minTime.toFixed(3)}s → ${maxTime.toFixed(3)}s`,
+    padding,
+    20
+  );
+
+  ctx.fillText(
+    `value: ${minValue.toFixed(3)} → ${maxValue.toFixed(3)}`,
+    padding,
+    36
+  );
 }
 
 function clearCanvas() {
