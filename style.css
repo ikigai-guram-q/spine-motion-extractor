@@ -1,60 +1,99 @@
 body {
-  margin: 0;
-  background: #0f1116;
-  color: white;
+  background: #0f1115;
+  color: #ffffff;
   font-family: Arial, sans-serif;
+  margin: 0;
 }
 
 .container {
-  padding: 20px;
-}
-
-.header {
+  max-width: 1000px;
+  margin: 40px auto;
   text-align: center;
+}
+
+h1 {
   margin-bottom: 20px;
 }
 
-.logo {
-  width: 200px;
+h2 {
+  margin-top: 28px;
+  margin-bottom: 12px;
+  font-size: 18px;
+  font-weight: normal;
+  color: #d7d7d7;
 }
 
-/* Controls */
-.controls {
-  display: flex;
-  gap: 10px;
-  align-items: center;
-  margin-bottom: 20px;
-}
-
-button {
-  padding: 6px 12px;
+.drop-zone {
+  border: 2px dashed #555;
+  padding: 40px;
+  margin-bottom: 12px;
   cursor: pointer;
+  position: relative;
+  background: #151821;
 }
 
-/* Output */
-.outputBox {
-  background: #1c1f26;
-  padding: 20px;
-  overflow: auto;
-}
-
-/* Table */
-.resultTable {
-  width: 100%;
-  border-collapse: collapse;
-  background: #ffffff;
-  color: #000000;
+.drop-zone span {
+  color: #aaa;
   font-size: 14px;
 }
 
-.resultTable th,
-.resultTable td {
-  border: 1px solid #999;
-  padding: 8px 10px;
-  text-align: left;
+.drop-zone input {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  opacity: 0;
+  left: 0;
+  top: 0;
+  cursor: pointer;
 }
 
-.resultTable th {
-  background: #e8e8e8;
-  font-weight: bold;
+.fileStatus {
+  background: #1c1f26;
+  border: 1px solid #333;
+  padding: 10px;
+  margin-bottom: 20px;
+  text-align: left;
+  font-size: 13px;
+  color: #ddd;
+}
+
+.controls {
+  margin-bottom: 20px;
+}
+
+select,
+button {
+  margin: 5px;
+  padding: 8px 12px;
+  background: #1c1f26;
+  color: white;
+  border: 1px solid #444;
+}
+
+button:hover {
+  background: #2a2f3a;
+}
+
+pre {
+  text-align: left;
+  background: #1c1f26;
+  padding: 20px;
+  overflow: auto;
+  white-space: pre-wrap;
+}
+
+#curveCanvas {
+  width: 100%;
+  height: 320px;
+  background: #151821;
+  border: 1px solid #333;
+  margin-top: 20px;
+}
+
+#previewBox {
+  width: 100%;
+  height: 360px;
+  background: #151821;
+  border: 1px solid #333;
+  overflow: hidden;
 }
