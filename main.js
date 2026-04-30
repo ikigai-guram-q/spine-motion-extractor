@@ -199,17 +199,23 @@ function extract() {
       }
     }
 
-    output.innerHTML = `
-<table border="1" style="border-collapse: collapse; font-family: Arial; font-size: 12px;">
+output.innerHTML = `
+<table border="1" style="
+  border-collapse: collapse;
+  font-family: Arial;
+  font-size: 16px;
+  margin: 20px auto;
+  text-align: center;
+">
   <tr>
-    <th>Segment</th>
-    <th>Time (sec.)</th>
-    <th>Value From → To</th>
-    <th>Duration (sec.)</th>
-    <th>Bezier (x1)</th>
-    <th>(y1)</th>
-    <th>(x2)</th>
-    <th>(y2)</th>
+    <th style="padding: 16px 20px;">Segment</th>
+    <th style="padding: 16px 20px;">Time (sec.)</th>
+    <th style="padding: 16px 20px;">Value From → To</th>
+    <th style="padding: 16px 20px;">Duration (sec.)</th>
+    <th style="padding: 16px 20px;">Bezier (x1)</th>
+    <th style="padding: 16px 20px;">(y1)</th>
+    <th style="padding: 16px 20px;">(x2)</th>
+    <th style="padding: 16px 20px;">(y2)</th>
   </tr>
 
   ${timeline.slice(0, -1).map((current, i) => {
