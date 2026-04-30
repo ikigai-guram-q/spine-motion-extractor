@@ -248,7 +248,7 @@ function formatBezier(bezierArray, originalCurve) {
   if (originalCurve === "stepped") return "stepped";
   if (!bezierArray) return "linear";
 
-  return bezierArray.map(v => Number(v).toFixed(3)).join(", ");
+  return bezierArray.map(v => Number(v).toFixed(2)).join(", ");
 }
 
 function cubicBezierEase(progress, x1, y1, x2, y2) {
@@ -336,13 +336,13 @@ function drawGraph(points) {
   ctx.font = "12px Arial";
 
   ctx.fillText(
-    `time: ${minTime.toFixed(3)}s → ${maxTime.toFixed(3)}s`,
+    `time: ${minTime.toFixed(2)}s → ${maxTime.toFixed(2)}s`,
     padding,
     20
   );
 
   ctx.fillText(
-    `value: ${minValue.toFixed(3)} → ${maxValue.toFixed(3)}`,
+    `value: ${minValue.toFixed(2)} → ${maxValue.toFixed(2)}`,
     padding,
     36
   );
