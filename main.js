@@ -199,7 +199,57 @@ function extract() {
       }
     }
 
-    output.textContent = rows.join("\n");
+    output.innerHTML = `
+<table border="1" style="border-collapse: collapse; font-family: Arial; font-size: 12px;">
+  <tr>
+    <th>Segment</th>
+    <th>Time (sec.)</th>
+    <th>Value From → To</th>
+    <th>Duration (sec.)</th>
+    <th>Bezier (x1)</th>
+    <th>(y1)</th>
+    <th>(x2)</th>
+    <th>(y2)</th>
+  </tr>
+
+  ${timeline.slice(0, -1).map((current, i) => {
+    const next = timeline[i + 1];
+
+    const startTime = current.time ?? 0;
+    const endTime = next.time ?? 0;
+    const duration = endTime - startTime;
+
+    const fromValue = current[valueKey] ?? 0;
+    const toValue = next[valueKey] ?? fromValue;
+
+    const bezier = getNormalizedBezierArray(
+      current.curve,
+      property,
+      startTime,
+      endTime,
+      fromValue,
+      toValue
+    );
+
+    const b = bezier
+      ? bezier.map(v => Number(v).toFixed(2))
+      : ["-", "-", "-", "-"];
+
+    return `
+      <tr>
+        <td>${i + 1}</td>
+        <td>${startTime.toFixed(2)} sec</td>
+        <td>${fromValue.toFixed(2)} → ${toValue.toFixed(2)}</td>
+        <td>${duration.toFixed(2)} sec</td>
+        <td>${b[0]}</td>
+        <td>${b[1]}</td>
+        <td>${b[2]}</td>
+        <td>${b[3]}</td>
+      </tr>
+    `;
+  }).join("")}
+</table>
+`;
     drawGraph(graphPoints);
 
   } catch (err) {
