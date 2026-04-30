@@ -171,7 +171,7 @@ function extract() {
       const bezierText = formatBezier(bezierArray, current.curve);
 
       rows.push(
-        `${startTime.toFixed(2)}s | ${fromValue.toFixed(2)} → ${toValue.toFixed(2)} | ${duration.toFixed(2)}s | ${bezierText}`
+        `${startTime.toFixed(2)}s\t${fromValue.toFixed(2)} → ${toValue.toFixed(2)}\t${duration.toFixed(2)}s\t${bezierText}`
       );
 
       const samples = 40;
